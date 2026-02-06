@@ -1,174 +1,158 @@
 --[[
-    SCRIPT V7.0 - REMOTE BRUTEFORCE & SCANNER
+    SCRIPT V8.0 - AUTO REMOTE FARM (LEITOR DE ATRIBUTOS)
     Criado para: Werbert
-    Função: Tenta todas as formas de ID e mostra o que tem dentro da moeda.
+    Lógica: Lê o ID e o Valor real escondidos dentro da moeda e envia pro servidor.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
 
--- CONFIGURAÇÃO DO REMOTE (Baseado no seu código)
+-- CONFIGURAÇÃO DO REMOTE
 local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remote"):WaitForChild("RemoteEvents"):WaitForChild("OrbPickupRequest")
 
 _G.WerbertFarm = false
 
--- --- INTERFACE (UI) ---
-if game.CoreGui:FindFirstChild("WerbertV7") then
-    game.CoreGui.WerbertV7:Destroy()
-end
-
+-- --- UI ---
+if game.CoreGui:FindFirstChild("WerbertV8") then game.CoreGui.WerbertV8:Destroy() end
 local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local ToggleBtn = Instance.new("TextButton")
-local StatusLabel = Instance.new("TextLabel")
-local CloseBtn = Instance.new("TextButton")
-
-ScreenGui.Name = "WerbertV7"
+ScreenGui.Name = "WerbertV8"
 ScreenGui.Parent = game.CoreGui
 
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.BorderColor3 = Color3.fromRGB(255, 0, 255) -- Roxo
-MainFrame.BorderSizePixel = 2
-MainFrame.Position = UDim2.new(0.5, -110, 0.5, -70)
-MainFrame.Size = UDim2.new(0, 220, 0, 150)
-MainFrame.Active = true
-MainFrame.Draggable = true
+local Frame = Instance.new("Frame")
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+Frame.Position = UDim2.new(0.5, -100, 0.5, -75)
+Frame.Size = UDim2.new(0, 200, 0, 150)
+Frame.Active = true
+Frame.Draggable = true
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
 
-Title.Parent = MainFrame
+local Title = Instance.new("TextLabel")
+Title.Parent = Frame
+Title.Text = "AUTO FARM V8"
+Title.TextColor3 = Color3.fromRGB(255, 215, 0)
 Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 0, 0, 5)
-Title.Size = UDim2.new(1, 0, 0, 20)
+Title.Size = UDim2.new(1, 0, 0, 30)
 Title.Font = Enum.Font.GothamBlack
-Title.Text = "COLETOR INTELIGENTE V7"
-Title.TextColor3 = Color3.fromRGB(255, 0, 255)
-Title.TextSize = 14
+Title.TextSize = 16
 
-StatusLabel.Parent = MainFrame
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Position = UDim2.new(0, 0, 0.75, 0)
-StatusLabel.Size = UDim2.new(1, 0, 0, 30)
-StatusLabel.Font = Enum.Font.Code
-StatusLabel.Text = "Abra o F9 para ver logs"
-StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-StatusLabel.TextSize = 10
-StatusLabel.TextWrapped = true
+local Status = Instance.new("TextLabel")
+Status.Parent = Frame
+Status.Text = "Aguardando..."
+Status.TextColor3 = Color3.fromRGB(150, 150, 150)
+Status.BackgroundTransparency = 1
+Status.Position = UDim2.new(0, 0, 0.7, 0)
+Status.Size = UDim2.new(1, 0, 0, 30)
+Status.Font = Enum.Font.Code
+Status.TextSize = 11
 
-ToggleBtn.Parent = MainFrame
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-ToggleBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
-ToggleBtn.Size = UDim2.new(0.8, 0, 0.4, 0)
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.Text = "ATIVAR"
-ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleBtn.TextSize = 18
+local Btn = Instance.new("TextButton")
+Btn.Parent = Frame
+Btn.Text = "LIGAR"
+Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Btn.Position = UDim2.new(0.1, 0, 0.3, 0)
+Btn.Size = UDim2.new(0.8, 0, 0.35, 0)
+Btn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
 
-CloseBtn.Parent = MainFrame
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-CloseBtn.Position = UDim2.new(0.85, 0, 0, 0)
-CloseBtn.Size = UDim2.new(0, 30, 0, 20)
-CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+local Close = Instance.new("TextButton")
+Close.Parent = Frame
+Close.Text = "X"
+Close.BackgroundTransparency = 1
+Close.TextColor3 = Color3.fromRGB(255, 50, 50)
+Close.Position = UDim2.new(0.85, 0, 0, 0)
+Close.Size = UDim2.new(0, 30, 0, 30)
 
--- --- LÓGICA INTELIGENTE ---
+-- --- FUNÇÃO INTELIGENTE ---
 
-ToggleBtn.MouseButton1Click:Connect(function()
-    _G.WerbertFarm = not _G.WerbertFarm
-    if _G.WerbertFarm then
-        ToggleBtn.Text = "RODANDO..."
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-        StatusLabel.Text = "Escaneando IDs..."
-    else
-        ToggleBtn.Text = "ATIVAR"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        StatusLabel.Text = "Parado"
-    end
-end)
-
-CloseBtn.MouseButton1Click:Connect(function()
-    _G.WerbertFarm = false
-    ScreenGui:Destroy()
-end)
-
--- Função para scanear a moeda (DEBUG)
-local function ScanCoin(model)
-    print("--- ESCANEANDO: " .. model.Name .. " ---")
+local function GetHiddenData(model)
+    local id = nil
+    local value = 1 -- Valor padrão se não achar
     
-    -- Mostra atributos (ID escondido?)
-    local attributes = model:GetAttributes()
-    for name, value in pairs(attributes) do
-        print("Atributo encontrado: ", name, " = ", value)
-    end
-
-    -- Mostra valores dentro
-    for _, child in pairs(model:GetChildren()) do
-        if child:IsA("IntValue") or child:IsA("StringValue") or child:IsA("NumberValue") then
-            print("Valor encontrado: ", child.Name, " = ", child.Value)
+    -- 1. PROCURA NOS ATRIBUTOS (Onde jogos modernos escondem IDs)
+    local atts = model:GetAttributes()
+    for name, val in pairs(atts) do
+        -- Procura qualquer coisa que pareça ID
+        if string.lower(name) == "id" or string.find(string.lower(name), "guid") then
+            id = tostring(val) -- Converte para string pois o seu código usa ["1476"]
+        end
+        -- Procura o valor da moeda
+        if string.lower(name) == "coin" or string.lower(name) == "value" or string.lower(name) == "amount" then
+            value = tonumber(val)
         end
     end
-    print("-------------------------")
+    
+    -- 2. SE NÃO ACHOU, PROCURA DENTRO DA PASTA DA MOEDA
+    if not id then
+        for _, child in pairs(model:GetChildren()) do
+            if (child:IsA("IntValue") or child:IsA("StringValue")) and (child.Name == "ID" or child.Name == "id") then
+                id = tostring(child.Value)
+            end
+            if (child:IsA("IntValue") or child:IsA("NumberValue")) and (child.Name == "Coin" or child.Name == "Value") then
+                value = child.Value
+            end
+        end
+    end
+
+    -- 3. SE AINDA NÃO ACHOU, TENTA O NÚMERO DO NOME (Último recurso)
+    if not id then
+        id = string.match(model.Name, "%d+")
+    end
+    
+    return id, value
 end
+
+-- --- LOOP DE FARM ---
+
+Btn.MouseButton1Click:Connect(function()
+    _G.WerbertFarm = not _G.WerbertFarm
+    if _G.WerbertFarm then
+        Btn.Text = "COLETANDO..."
+        Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+    else
+        Btn.Text = "LIGAR"
+        Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        Status.Text = "Parado"
+    end
+end)
+
+Close.MouseButton1Click:Connect(function() _G.WerbertFarm = false ScreenGui:Destroy() end)
 
 task.spawn(function()
     while true do
         if _G.WerbertFarm then
             pcall(function()
                 local folder = Workspace:FindFirstChild("DebrisClient") or Workspace
-                local scannedOne = false
+                local collected = 0
                 
                 for _, item in pairs(folder:GetChildren()) do
                     if string.sub(item.Name, 1, 6) == "Pickup" then
                         
-                        -- Extrai o número do nome
-                        local idString = string.match(item.Name, "%d+") -- Ex: "109484"
-                        local idNumber = tonumber(idString)             -- Ex: 109484 (número)
+                        -- Extrai os dados reais
+                        local realID, realValue = GetHiddenData(item)
                         
-                        if idString then
-                            -- DEBUG: Na primeira moeda encontrada, mostra o que tem dentro no F9
-                            if not scannedOne then
-                                ScanCoin(item)
-                                scannedOne = true
-                            end
-
-                            -- TENTATIVA 1: Envia como TEXTO (String Key)
-                            -- Ex: { ["109484"] = { Coin = 1 } }
-                            local argsString = {
-                                [idString] = {
-                                    ["Coin"] = 1
+                        if realID then
+                            -- Monta o argumento IGUAL AO SEU EXEMPLO
+                            local args = {
+                                [realID] = {
+                                    ["Coin"] = realValue
                                 }
                             }
-                            RemoteEvent:FireServer(argsString)
-
-                            -- TENTATIVA 2: Envia como NÚMERO (Number Key)
-                            -- Ex: { [109484] = { Coin = 1 } }
-                            if idNumber then
-                                local argsNumber = {
-                                    [idNumber] = {
-                                        ["Coin"] = 1
-                                    }
-                                }
-                                RemoteEvent:FireServer(argsNumber)
-                            end
                             
-                            -- TENTATIVA 3: Tenta achar um atributo "ID" real
-                            local realID = item:GetAttribute("ID") or item:GetAttribute("id")
-                            if realID then
-                                local argsReal = {
-                                    [realID] = {
-                                        ["Coin"] = 1
-                                    }
-                                }
-                                RemoteEvent:FireServer(argsReal)
-                            end
+                            -- Envia pro servidor
+                            RemoteEvent:FireServer(args)
+                            
+                            -- Deleta a moeda pra não travar o PC
+                            item:Destroy()
+                            
+                            collected = collected + 1
+                            Status.Text = "Último ID: " .. realID .. " | Valor: " .. realValue
                         end
                     end
                 end
             end)
         end
-        task.wait(0.2) -- Tenta coletar 5 vezes por segundo
+        task.wait(0.2) -- Velocidade segura
     end
 end)
