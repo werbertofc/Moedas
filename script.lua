@@ -1,20 +1,23 @@
 --[[
-    SCRIPT V5.0 - PIVOT MOVER (MÉTODO PROFISSIONAL)
+    SCRIPT V6.0 - REMOTE FARM (GOD MODE)
     Criado para: Werbert
-    Tática: Mover o Modelo (Model) inteiro usando PivotTo e forçar o toque.
+    Método: Dispara o evento de coleta sem precisar tocar na moeda.
 ]]
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
--- Variáveis Globais
+-- CONFIGURAÇÃO DO REMOTE (Baseado no seu código)
+-- Caminho: ReplicatedStorage > Shared > Remote > RemoteEvents > OrbPickupRequest
+local RemoteEvent = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remote"):WaitForChild("RemoteEvents"):WaitForChild("OrbPickupRequest")
+
+-- Variáveis de Controle
 _G.WerbertFarm = false
 
--- --- INTERFACE LIMPA ---
-if game.CoreGui:FindFirstChild("WerbertPivotV5") then
-    game.CoreGui.WerbertPivotV5:Destroy()
+-- --- INTERFACE GRÁFICA (UI) ---
+if game.CoreGui:FindFirstChild("WerbertRemoteV6") then
+    game.CoreGui.WerbertRemoteV6:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -24,13 +27,13 @@ local ToggleBtn = Instance.new("TextButton")
 local StatusLabel = Instance.new("TextLabel")
 local CloseBtn = Instance.new("TextButton")
 
-ScreenGui.Name = "WerbertPivotV5"
+ScreenGui.Name = "WerbertRemoteV6"
 ScreenGui.Parent = game.CoreGui
 
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-MainFrame.BorderColor3 = Color3.fromRGB(255, 170, 0) -- Borda Laranja
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+MainFrame.BorderColor3 = Color3.fromRGB(0, 170, 255)
 MainFrame.BorderSizePixel = 2
 MainFrame.Position = UDim2.new(0.5, -110, 0.5, -70)
 MainFrame.Size = UDim2.new(0, 220, 0, 140)
@@ -42,9 +45,9 @@ Title.BackgroundTransparency = 1
 Title.Position = UDim2.new(0, 0, 0, 8)
 Title.Size = UDim2.new(1, 0, 0, 20)
 Title.Font = Enum.Font.GothamBlack
-Title.Text = "ULTIMATE MAGNET V5"
-Title.TextColor3 = Color3.fromRGB(255, 170, 0)
-Title.TextSize = 16
+Title.Text = "REMOTE COLLECTOR"
+Title.TextColor3 = Color3.fromRGB(0, 170, 255)
+Title.TextSize = 18
 
 StatusLabel.Parent = MainFrame
 StatusLabel.BackgroundTransparency = 1
@@ -56,34 +59,34 @@ StatusLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
 StatusLabel.TextSize = 11
 
 ToggleBtn.Parent = MainFrame
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 ToggleBtn.Position = UDim2.new(0.1, 0, 0.35, 0)
 ToggleBtn.Size = UDim2.new(0.8, 0, 0.35, 0)
 ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.Text = "ATIVAR MAGNET"
+ToggleBtn.Text = "ATIVAR FARM"
 ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleBtn.TextSize = 16
 
 CloseBtn.Parent = MainFrame
 CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 CloseBtn.Position = UDim2.new(0.85, 0, 0, 0)
-CloseBtn.Size = UDim2.new(0, 33, 0, 20) -- Botãozinho no topo
+CloseBtn.Size = UDim2.new(0, 33, 0, 20)
 CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.GothamBold
 
--- --- FUNÇÕES V5 (Pivot Logic) ---
+-- --- LÓGICA DO REMOTE FARM ---
 
 ToggleBtn.MouseButton1Click:Connect(function()
     _G.WerbertFarm = not _G.WerbertFarm
     if _G.WerbertFarm then
-        ToggleBtn.Text = "ATIVADO (RODANDO)"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-        StatusLabel.Text = "Tentando mover modelos..."
-        StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+        ToggleBtn.Text = "COLETANDO..."
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+        StatusLabel.Text = "Escaneando IDs..."
+        StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
     else
-        ToggleBtn.Text = "ATIVAR MAGNET"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        ToggleBtn.Text = "ATIVAR FARM"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         StatusLabel.Text = "Parado"
         StatusLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
     end
@@ -94,55 +97,50 @@ CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Loop Rápido (Heartbeat)
+-- Loop de Coleta
 task.spawn(function()
     while true do
         if _G.WerbertFarm then
             pcall(function()
-                local char = LocalPlayer.Character
-                if not char then return end
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
-
-                -- Procura no DebrisClient (Confirmado pelo seu print)
+                -- Procura a pasta de moedas (DebrisClient ou Workspace)
                 local folder = Workspace:FindFirstChild("DebrisClient") or Workspace
-                local count = 0
-
-                for _, model in pairs(folder:GetChildren()) do
-                    -- Verifica se é um MODELO e se tem o nome Pickup
-                    -- E verifica se tem o HitDetect dentro dele
-                    if model:IsA("Model") and string.find(model.Name, "Pickup") then
-                        local hitDetect = model:FindFirstChild("HitDetect")
+                
+                local coinsCollected = 0
+                
+                for _, item in pairs(folder:GetChildren()) do
+                    -- Verifica se o nome começa com "Pickup"
+                    if string.sub(item.Name, 1, 6) == "Pickup" then
                         
-                        if hitDetect then
-                            count = count + 1
+                        -- Extrai SOMENTE O NÚMERO do nome (Ex: Pickup109484 -> "109484")
+                        local coinID = string.match(item.Name, "%d+")
+                        
+                        if coinID then
+                            -- Monta o argumento exatamente como você mandou
+                            -- args = { { ["ID"] = { Coin = 1 } } }
+                            -- O FireServer recebe o conteúdo de dentro
                             
-                            -- 1. PREPARAÇÃO (Solta a moeda)
-                            if hitDetect.Anchored then hitDetect.Anchored = false end
-                            hitDetect.CanCollide = false
-                            hitDetect.Size = Vector3.new(15, 15, 15) -- Tamanho Grande
-                            hitDetect.Transparency = 0.5
+                            local args = {
+                                [coinID] = {
+                                    ["Coin"] = 1
+                                }
+                            }
                             
-                            -- 2. MOVIMENTO PROFISSIONAL (PivotTo)
-                            -- Traz o modelo INTEIRO para o seu HumanoidRootPart
-                            model:PivotTo(hrp.CFrame)
+                            -- Dispara o evento para o servidor
+                            RemoteEvent:FireServer(args)
                             
-                            -- 3. FORÇA O TOQUE (FireTouchInterest)
-                            if firetouchinterest then
-                                firetouchinterest(hrp, hitDetect, 0) -- Toca
-                                firetouchinterest(hrp, hitDetect, 1) -- Solta
-                            end
+                            -- Opcional: Destroi a moeda localmente para não tentar pegar de novo
+                            -- item:Destroy() 
+                            
+                            coinsCollected = coinsCollected + 1
                         end
                     end
                 end
                 
-                if count > 0 then
-                    StatusLabel.Text = "Puxando " .. count .. " moedas..."
-                else
-                    StatusLabel.Text = "Nenhuma moeda encontrada."
+                if coinsCollected > 0 then
+                    StatusLabel.Text = "Enviado request para " .. coinsCollected .. " moedas"
                 end
             end)
         end
-        task.wait(0.03) -- Loop super rápido (30ms)
+        task.wait(0.5) -- Espera meio segundo para não crashar o jogo (pode diminuir se quiser mais rápido)
     end
 end)
